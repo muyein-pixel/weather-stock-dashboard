@@ -1,0 +1,19 @@
+[
+  { "id": "seoul",     "name": "서울", "nx": 60, "ny": 127, "left": 34, "top": 20 },
+  { "id": "incheon",   "name": "인천", "nx": 55, "ny": 124, "left": 24, "top": 26 },
+  { "id": "gyeonggi",  "name": "경기", "nx": 60, "ny": 121, "left": 40, "top": 18 },
+  { "id": "gangwon",   "name": "강원", "nx": 73, "ny": 134, "left": 64, "top": 19 },
+  { "id": "sejong",    "name": "세종", "nx": 66, "ny": 103, "left": 39, "top": 41 },
+  { "id": "daejeon",   "name": "대전", "nx": 67, "ny": 100, "left": 44, "top": 47 },
+  { "id": "chungbuk",  "name": "충북", "nx": 69, "ny": 107, "left": 51, "top": 43 },
+  { "id": "chungnam",  "name": "충남", "nx": 63, "ny": 110, "left": 29, "top": 46 },
+  { "id": "gyeongbuk", "name": "경북", "nx": 87, "ny": 106, "left": 68, "top": 46 },
+  { "id": "daegu",     "name": "대구", "nx": 89, "ny": 90,  "left": 62, "top": 56 },
+  { "id": "ulsan",     "name": "울산", "nx": 102, "ny": 84, "left": 77, "top": 60 },
+  { "id": "gyeongnam", "name": "경남", "nx": 91, "ny": 77,  "left": 57, "top": 62 },
+  { "id": "busan",     "name": "부산", "nx": 98, "ny": 76,  "left": 74, "top": 66 },
+  { "id": "jeonbuk",   "name": "전북", "nx": 63, "ny": 89,  "left": 38, "top": 56 },
+  { "id": "gwangju",   "name": "광주", "nx": 58, "ny": 74,  "left": 32, "top": 65 },
+  { "id": "jeonnam",   "name": "전남", "nx": 51, "ny": 67,  "left": 25, "top": 73 },
+  { "id": "jeju",      "name": "제주", "nx": 52, "ny": 38,  "left": 23, "top": 91 }
+]

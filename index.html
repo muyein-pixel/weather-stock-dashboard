@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>날씨 &amp; 주식 대시보드</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 40%, #334155 100%);
+      min-height: 100vh;
+      color: #0f172a;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .site-header {
+      color: #fff;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .site-header h1 { font-size: 1.75rem; margin-bottom: 4px; }
+    .site-header p { opacity: 0.85; font-size: 0.9rem; }
+    .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+    }
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .dashboard { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: rgba(255,255,255,0.97);
+      border-radius: 18px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .panel-head h2 { font-size: 1.1rem; color: #1e3a5f; }
+    .panel-head .sub { font-size: 0.78rem; color: #64748b; }
+    .weather-body { padding: 16px; }
+    .weather-layout {
+      display: grid;
+      grid-template-columns: 1fr 0.85fr;
+      gap: 14px;
+    }
+    @media (max-width: 700px) {
+      .weather-layout { grid-template-columns: 1fr; }
+    }
+    .map-wrap {
+      border-radius: 14px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #e0f2fe, #bae6fd);
+      position: relative;
+      min-height: 280px;
+    }
+    .map-bg {
+      width: 100%;
+      height: 100%;
+      min-height: 280px;
+      object-fit: contain;
+      opacity: 0.35;
+      display: block;
+    }
+    .markers-layer {
+      position: absolute;
+      inset: 0;
+    }
+    .map-marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      border: 2px solid #94a3b8;
+      background: rgba(255,255,255,0.92);
+      border-radius: 8px;
+      padding: 3px 7px;
+      box-shadow: 0 2px 8px rgba(15,23,42,0.18);
+      font-family: inherit;
+      line-height: 1.15;
+      transition: transform 0.15s;
+      white-space: nowrap;
+      min-width: 48px;
+      text-align: center;
+    }
+    .map-marker:hover { transform: translate(-50%, -50%) scale(1.06); z-index: 2; }
+    .map-marker.active {
+      border-color: #1e3a5f;
+      border-width: 3px;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.3);
+      z-index: 3;
+    }
+    .map-marker .m-name { display: block; font-size: 0.65rem; font-weight: 700; }
+    .map-marker .m-temp { display: block; font-size: 0.78rem; font-weight: 800; }
+    .detail-box { padding: 4px 0; }
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+      background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+      border-radius: 14px;
+      margin-bottom: 12px;
+    }
+    .hero-icon { font-size: 2.8rem; }
+    .hero-temp { font-size: 2.2rem; font-weight: 800; }
+    .hero-desc { color: #475569; font-size: 0.88rem; margin-top: 2px; }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .stat {
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .stat label { display: block; font-size: 0.7rem; color: #64748b; margin-bottom: 2px; }
+    .stat span { font-size: 0.95rem; font-weight: 700; }
+    .region-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .rcard {
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 8px 6px;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid transparent;
+      font-size: 0.72rem;
+    }
+    .rcard:hover { background: #eff6ff; }
+    .rcard.active { border-color: #2563eb; background: #eff6ff; }
+    .rcard .rc-temp { font-size: 0.95rem; font-weight: 800; display: block; }
+    .stock-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 12px 20px 0;
+      font-size: 0.82rem;
+    }
+    .stock-meta span { color: #64748b; }
+    .stock-meta strong { color: #2563eb; }
+    .table-wrap { overflow-x: auto; max-height: 620px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      padding: 11px 14px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.85rem;
+    }
+    th {
+      background: #f8fafc;
+      color: #64748b;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    td.num, th.num { text-align: right; }
+    tr:hover td { background: #f8fafc; }
+    .rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-weight: 700;
+      font-size: 0.78rem;
+    }
+    tr:nth-child(-n+3) .rank { background: #fef3c7; color: #b45309; }
+    .market {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .market.kospi { background: #dbeafe; color: #1d4ed8; }
+    .market.kosdaq { background: #dcfce7; color: #15803d; }
+    .market.other { background: #f1f5f9; color: #475569; }
+    .price { font-weight: 700; }
+    .up { color: #dc2626; }
+    .down { color: #2563eb; }
+    .flat { color: #64748b; }
+    .loading, .error {
+      text-align: center;
+      padding: 40px 16px;
+      color: #64748b;
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+    .error { color: #dc2626; }
+    footer {
+      text-align: center;
+      color: rgba(255,255,255,0.65);
+      font-size: 0.75rem;
+      margin-top: 18px;
+      line-height: 1.5;
+    }
+    @media (max-width: 768px) {
+      th:nth-child(4), td:nth-child(4),
+      th:nth-child(7), td:nth-child(7) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="site-header">
+      <div>
+        <h1>날씨 &amp; 주식 대시보드</h1>
+        <p>전국 17개 시·도 날씨 · 한국 주식 종가 TOP 50</p>
+      </div>
+      <div class="badges">
+        <div class="badge" id="weatherBadge">날씨: 불러오는 중…</div>
+        <div class="badge" id="stockBadge">주식: 불러오는 중…</div>
+      </div>
+    </header>
+
+    <div class="dashboard">
+      <section class="panel" id="weatherPanel">
+        <div class="panel-head">
+          <div>
+            <h2>전국 날씨</h2>
+            <div class="sub">기상청 단기예보 · 17개 시·도</div>
+          </div>
+        </div>
+        <div class="weather-body" id="weatherBody">
+          <div class="loading">날씨 데이터를 불러오는 중…</div>
+        </div>
+      </section>
+
+      <section class="panel" id="stockPanel">
+        <div class="panel-head">
+          <div>
+            <h2>주식 TOP 50</h2>
+            <div class="sub">금융위원회 주식시세 · 종가 기준</div>
+          </div>
+        </div>
+        <div class="stock-meta" id="stockMeta" style="display:none">
+          <span>기준일: <strong id="basDt">-</strong></span>
+          <span>조회: <strong id="totalCount">-</strong>개 종목</span>
+        </div>
+        <div id="stockBody">
+          <div class="loading">주식 데이터를 불러오는 중…</div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      출처: 기상청 단기예보(VilageFcstInfoService) · 금융위원회 GetStockSecuritiesInfoService
+    </footer>
+  </div>
+
+  <script>
+    const ICONS = { sun: "☀️", cloud: "⛅", overcast: "☁️", rain: "🌧️", snow: "❄️", sleet: "🌨️" };
+    const SKY_LABELS = { "1": "맑음", "3": "구름많음", "4": "흐림" };
+    const PTY_LABELS = { "0": "없음", "1": "비", "2": "비/눈", "3": "눈", "4": "소나기" };
+    const IS_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const WEATHER_URL = IS_LOCAL ? "/api/weather" : "data/weather.json";
+    const STOCK_URL = IS_LOCAL ? "/api/top50" : "data/stocks.json";
+
+    function formatNumber(n) { return Number(n).toLocaleString("ko-KR"); }
+    function formatDate(s) {
+      if (!s || s.length !== 8) return s || "-";
+      return s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8);
+    }
+    function formatTime(s) {
+      if (!s || s.length !== 4) return s || "-";
+      return s.slice(0, 2) + ":" + s.slice(2, 4);
+    }
+    function skyLabel(c) { return SKY_LABELS[c] || "-"; }
+    function ptyLabel(c) { return PTY_LABELS[c] || "-"; }
+    function tempColor(t) {
+      const n = Number(t);
+      if (isNaN(n)) return "#94a3b8";
+      if (n <= 0) return "#3b82f6";
+      if (n <= 10) return "#06b6d4";
+      if (n <= 20) return "#22c55e";
+      if (n <= 28) return "#f59e0b";
+      return "#ef4444";
+    }
+    function changeClass(vs) {
+      const n = Number(vs);
+      if (n > 0) return "up";
+      if (n < 0) return "down";
+      return "flat";
+    }
+    function marketClass(m) {
+      if (m === "KOSPI") return "kospi";
+      if (m === "KOSDAQ") return "kosdaq";
+      return "other";
+    }
+
+    function mergeRegions(positions, weatherRegions) {
+      const map = Object.fromEntries((weatherRegions || []).map(r => [r.id, r]));
+      return positions.map(p => {
+        const w = map[p.id];
+        const hasData = !!(w && w.temp != null && w.temp !== "");
+        return { ...p, ...w, hasData };
+      });
+    }
+
+    function renderWeather(data, positions) {
+      const regions = mergeRegions(positions, data.regions || []);
+      let selected = regions.find(r => r.hasData) || regions[0];
+
+      document.getElementById("weatherBadge").textContent =
+        "날씨: " + (data.updatedAt || formatDate(data.baseDate) + " " + formatTime(data.baseTime));
+
+      document.getElementById("weatherBody").innerHTML = `
+        <div class="weather-layout">
+          <div class="map-wrap">
+            <svg class="map-bg" viewBox="0 0 400 520" xmlns="http://www.w3.org/2000/svg">
+              <rect width="400" height="520" fill="#e0f2fe"/>
+              <path fill="#bfdbfe" stroke="#3b82f6" stroke-width="2"
+                d="M120,40 L180,30 L240,45 L280,70 L300,110 L310,150 L305,190 L290,230 L270,270 L250,310 L220,350 L190,380 L160,400 L130,410 L100,390 L80,350 L70,300 L75,250 L85,200 L95,150 L105,100 Z M60,420 L90,400 L110,430 L95,460 L65,455 Z"/>
+            </svg>
+            <div class="markers-layer" id="markersLayer"></div>
+          </div>
+          <div class="detail-box" id="detailBox"></div>
+        </div>
+        <div class="region-cards" id="regionCards"></div>`;
+
+      function renderDetail(r) {
+        selected = r;
+        document.querySelectorAll(".map-marker").forEach(el =>
+          el.classList.toggle("active", el.dataset.id === r.id));
+        document.querySelectorAll(".rcard").forEach(el =>
+          el.classList.toggle("active", el.dataset.id === r.id));
+
+        const icon = r.hasData ? (ICONS[r.icon] || "🌡️") : "⚠️";
+        document.getElementById("detailBox").innerHTML = `
+          <h3 style="margin-bottom:4px">${r.name}</h3>
+          <p style="font-size:0.78rem;color:#64748b;margin-bottom:10px">nx=${r.nx}, ny=${r.ny}</p>
+          <div class="hero">
+            <div class="hero-icon">${icon}</div>
+            <div>
+              <div class="hero-temp" style="color:${tempColor(r.temp)}">${r.hasData ? r.temp + "°C" : "-"}</div>
+              <div class="hero-desc">${r.hasData ? skyLabel(r.sky) + (r.pty && r.pty !== "0" ? " · " + ptyLabel(r.pty) : "") : "데이터 없음"}</div>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat"><label>습도</label><span>${r.humidity ?? "-"}${r.hasData ? "%" : ""}</span></div>
+            <div class="stat"><label>강수확률</label><span>${r.pop ?? "-"}${r.hasData ? "%" : ""}</span></div>
+            <div class="stat"><label>풍속</label><span>${r.wind ?? "-"}${r.hasData ? " m/s" : ""}</span></div>
+            <div class="stat"><label>예보시각</label><span style="font-size:0.82rem">${r.hasData ? formatTime(r.fcstTime) : "-"}</span></div>
+          </div>`;
+      }
+
+      document.getElementById("markersLayer").innerHTML = regions.map(r => {
+        const color = r.hasData ? tempColor(r.temp) : "#94a3b8";
+        return `<button type="button" class="map-marker" data-id="${r.id}"
+          style="left:${r.left}%;top:${r.top}%;border-color:${color}">
+          <span class="m-name">${r.name}</span>
+          <span class="m-temp" style="color:${color}">${r.hasData ? r.temp + "°" : "-"}</span>
+        </button>`;
+      }).join("");
+
+      document.getElementById("regionCards").innerHTML = regions.map(r =>
+        `<div class="rcard" data-id="${r.id}">
+          <span>${r.name}</span>
+          <span class="rc-temp" style="color:${r.hasData ? tempColor(r.temp) : "#94a3b8"}">${r.hasData ? r.temp + "°" : "-"}</span>
+        </div>`
+      ).join("");
+
+      document.querySelectorAll(".map-marker, .rcard").forEach(el => {
+        el.addEventListener("click", () => {
+          const r = regions.find(x => x.id === el.dataset.id);
+          if (r) renderDetail(r);
+        });
+      });
+
+      if (selected) renderDetail(selected);
+    }
+
+    function renderStocks(data) {
+      document.getElementById("stockBadge").textContent = "주식: " + formatDate(data.basDt);
+      document.getElementById("stockMeta").style.display = "flex";
+      document.getElementById("basDt").textContent = formatDate(data.basDt);
+      document.getElementById("totalCount").textContent = formatNumber(data.totalCount);
+
+      const rows = (data.stocks || []).map((s, i) => {
+        const cls = changeClass(s.vs);
+        const sign = Number(s.vs) > 0 ? "+" : "";
+        return `<tr>
+          <td><span class="rank">${i + 1}</span></td>
+          <td><strong>${s.itmsNm}</strong></td>
+          <td>${s.srtnCd}</td>
+          <td><span class="market ${marketClass(s.mrktCtg)}">${s.mrktCtg}</span></td>
+          <td class="num price">${formatNumber(s.clpr)}원</td>
+          <td class="num ${cls}">${sign}${formatNumber(s.vs)} (${s.fltRt}%)</td>
+          <td class="num">${formatNumber(s.trqu)}</td>
+        </tr>`;
+      }).join("");
+
+      document.getElementById("stockBody").innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>순위</th><th>종목명</th><th>코드</th><th>시장</th>
+                <th class="num">종가</th><th class="num">전일대비</th><th class="num">거래량</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function showWeatherError(msg) {
+      document.getElementById("weatherBody").innerHTML = `<div class="error">${msg}</div>`;
+      document.getElementById("weatherBadge").textContent = "날씨: 오류";
+    }
+
+    function showStockError(msg) {
+      document.getElementById("stockBody").innerHTML = `<div class="error">${msg}</div>`;
+      document.getElementById("stockBadge").textContent = "주식: 오류";
+    }
+
+    async function loadWeather() {
+      try {
+        const [posRes, weatherRes] = await Promise.all([
+          fetch("regions.json"),
+          fetch(WEATHER_URL)
+        ]);
+        const positions = await posRes.json();
+        const data = await weatherRes.json();
+        if (!weatherRes.ok || data.error) throw new Error(data.error || "날씨 API 실패");
+        if (!data.regions || data.regions.length === 0) throw new Error("날씨 데이터가 없습니다.");
+        renderWeather(data, positions);
+      } catch (err) {
+        const hint = IS_LOCAL
+          ? "<br><br>로컬: .\\start.ps1 실행 후 http://localhost:8080 접속"
+          : "<br><br>GitHub Actions가 데이터를 갱신할 때까지 잠시 기다려 주세요.";
+        showWeatherError("날씨를 불러오지 못했습니다.<br>" + err.message + hint);
+      }
+    }
+
+    async function loadStocks() {
+      try {
+        const res = await fetch(STOCK_URL);
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "주식 API 실패");
+        if (!data.stocks || data.stocks.length === 0) throw new Error("주식 데이터가 없습니다.");
+        renderStocks(data);
+      } catch (err) {
+        const hint = IS_LOCAL
+          ? "<br><br>로컬: .\\start.ps1 실행 후 http://localhost:8080 접속"
+          : "<br><br>GitHub Actions가 데이터를 갱신할 때까지 잠시 기다려 주세요.";
+        showStockError("주식을 불러오지 못했습니다.<br>" + err.message + hint);
+      }
+    }
+
+    if (location.protocol === "file:") {
+      showWeatherError("HTML 파일을 직접 열 수 없습니다.<br>start.ps1을 실행하거나 GitHub Pages URL을 사용하세요.");
+      showStockError("HTML 파일을 직접 열 수 없습니다.<br>start.ps1을 실행하거나 GitHub Pages URL을 사용하세요.");
+    } else {
+      loadWeather();
+      loadStocks();
+    }
+  </script>
+</body>
+</html>

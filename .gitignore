@@ -1,0 +1,19 @@
+# Local cache
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+
+# Extracted docs (not needed for deploy)
+weather_doc/
+docx_extract/
+
+# Legacy subfolders (source kept for reference)
+# weather/ is included for reference but not served

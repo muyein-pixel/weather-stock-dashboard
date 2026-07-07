@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>대한민국 문화관광축제 날씨</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      background: linear-gradient(160deg, #0c4a6e 0%, #0369a1 35%, #7dd3fc 100%);
+      min-height: 100vh;
+      color: #0f172a;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    header {
+      color: #fff;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.8rem; margin-bottom: 6px; }
+    header p { opacity: 0.9; font-size: 0.95rem; }
+    .meta-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+    .badge {
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+    }
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: rgba(255,255,255,0.95);
+      border-radius: 20px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+      overflow: hidden;
+    }
+    .map-panel { padding: 16px; }
+    .map-wrap {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      background: #e8f4fc;
+    }
+    .map-stage {
+      position: relative;
+      width: 100%;
+    }
+    .map-stage img {
+      width: 100%;
+      height: auto;
+      display: block;
+      vertical-align: top;
+    }
+    .markers-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .map-marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: auto;
+      cursor: pointer;
+      border: 2px solid #94a3b8;
+      background: rgba(255,255,255,0.88);
+      border-radius: 8px;
+      padding: 3px 7px;
+      box-shadow: 0 2px 8px rgba(15,23,42,0.2);
+      font-family: inherit;
+      line-height: 1.15;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      min-width: 52px;
+      text-align: center;
+    }
+    .map-marker:hover {
+      transform: translate(-50%, -50%) scale(1.08);
+      box-shadow: 0 4px 16px rgba(15,23,42,0.28);
+      z-index: 2;
+    }
+    .map-marker.active {
+      border-color: #0f172a;
+      border-width: 3px;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.35);
+      z-index: 3;
+    }
+    .map-marker .m-name {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .map-marker .m-temp {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+    .map-marker.skeleton {
+      opacity: 0.75;
+      border-style: dashed;
+      pointer-events: none;
+    }
+    .map-marker.no-data {
+      border-color: #cbd5e1;
+      opacity: 0.9;
+    }
+    .map-marker.no-data .m-temp { color: #94a3b8; }
+    .map-loading {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,0.92);
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      color: #475569;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      pointer-events: none;
+    }
+    .detail-panel { padding: 24px; display: flex; flex-direction: column; }
+    .detail-panel h2 { font-size: 1.2rem; margin-bottom: 4px; }
+    .detail-panel .sub { color: #64748b; font-size: 0.85rem; margin-bottom: 20px; }
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 20px;
+      background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+      border-radius: 16px;
+      margin-bottom: 18px;
+    }
+    .hero-icon { font-size: 3.5rem; line-height: 1; }
+    .hero-temp { font-size: 2.8rem; font-weight: 800; color: #0f172a; }
+    .hero-desc { color: #475569; margin-top: 4px; }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .stat {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .stat label {
+      display: block;
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    .stat span { font-size: 1.05rem; font-weight: 700; }
+    .legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      font-size: 0.75rem;
+      color: #475569;
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend i {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .cards-panel { margin-top: 20px; padding: 20px; }
+    .cards-panel h3 { margin-bottom: 14px; font-size: 1rem; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 14px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .card:hover { transform: translateY(-2px); }
+    .card.active { border-color: #2563eb; background: #eff6ff; }
+    .card .c-name { font-weight: 700; margin-bottom: 6px; }
+    .card .c-temp { font-size: 1.4rem; font-weight: 800; }
+    .card .c-sky { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+    .loading, .error-box {
+      text-align: center;
+      padding: 80px 20px;
+      color: #64748b;
+    }
+    .error-box { color: #dc2626; white-space: pre-wrap; line-height: 1.6; }
+    footer {
+      text-align: center;
+      color: rgba(255,255,255,0.75);
+      font-size: 0.78rem;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>대한민국 문화관광축제 날씨</h1>
+        <p>기상청 단기예보 API · 전국 17개 시·도 실시간 날씨</p>
+      </div>
+      <div class="meta-badges">
+        <div class="badge" id="updatedBadge">업데이트: -</div>
+        <div class="badge" id="baseBadge">발표: -</div>
+      </div>
+    </header>
+
+    <div id="app">
+      <div class="layout">
+        <div class="panel map-panel">
+          <div class="map-wrap">
+            <div class="map-stage">
+              <img src="/korea-map.png" alt="대한민국 지도">
+              <div class="markers-layer" id="markersLayer"></div>
+            </div>
+            <div class="legend">
+              <span><i style="background:#3b82f6"></i>0°C 이하</span>
+              <span><i style="background:#06b6d4"></i>1~10°C</span>
+              <span><i style="background:#22c55e"></i>11~20°C</span>
+              <span><i style="background:#f59e0b"></i>21~28°C</span>
+              <span><i style="background:#ef4444"></i>29°C+</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel detail-panel" id="detailPanel">
+          <div class="loading" style="padding:40px 20px">지도 불러오는 중…</div>
+        </div>
+      </div>
+      <div class="panel cards-panel" id="cardsPanel" style="display:none">
+        <h3>전국 시·도 날씨</h3>
+        <div class="cards" id="cards"></div>
+      </div>
+    </div>
+
+    <footer>출처: 기상청 단기예보 조회서비스(VilageFcstInfoService_2.0) · 관광코스별 관광지 상세설명서 참고</footer>
+  </div>
+
+  <script>
+    const ICONS = {
+      sun: "☀️",
+      cloud: "⛅",
+      overcast: "☁️",
+      rain: "🌧️",
+      snow: "❄️",
+      sleet: "🌨️"
+    };
+
+    const SKY_LABELS = { "1": "맑음", "3": "구름많음", "4": "흐림" };
+    const PTY_LABELS = { "0": "없음", "1": "비", "2": "비/눈", "3": "눈", "4": "소나기" };
+
+    function skyLabel(code) { return SKY_LABELS[code] || "-"; }
+    function ptyLabel(code) { return PTY_LABELS[code] || "-"; }
+
+    function tempColor(t) {
+      const n = Number(t);
+      if (isNaN(n)) return "#94a3b8";
+      if (n <= 0) return "#3b82f6";
+      if (n <= 10) return "#06b6d4";
+      if (n <= 20) return "#22c55e";
+      if (n <= 28) return "#f59e0b";
+      return "#ef4444";
+    }
+
+    function formatDate(s) {
+      if (!s || s.length !== 8) return s || "-";
+      return s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8);
+    }
+
+    function formatTime(s) {
+      if (!s || s.length !== 4) return s || "-";
+      return s.slice(0, 2) + ":" + s.slice(2, 4);
+    }
+
+    function renderMapSkeleton(positions) {
+      document.getElementById("markersLayer").innerHTML = positions.map(r => `
+        <button type="button" class="map-marker skeleton" data-id="${r.id}"
+          style="left:${r.left}%;top:${r.top}%">
+          <span class="m-name">${r.name}</span>
+          <span class="m-temp">…</span>
+        </button>`).join("");
+      document.getElementById("detailPanel").innerHTML =
+        `<div class="loading" style="padding:40px 20px">날씨 데이터 조회 중…</div>`;
+    }
+
+    function mergeAllRegions(positions, weatherRegions) {
+      const weatherMap = Object.fromEntries((weatherRegions || []).map(r => [r.id, r]));
+      return positions.map(p => {
+        const w = weatherMap[p.id];
+        return {
+          id: p.id,
+          name: p.name,
+          nx: p.nx,
+          ny: p.ny,
+          left: p.left,
+          top: p.top,
+          temp: w?.temp ?? null,
+          forecastTemp: w?.forecastTemp ?? null,
+          sky: w?.sky ?? null,
+          pty: w?.pty ?? null,
+          pop: w?.pop ?? null,
+          humidity: w?.humidity ?? null,
+          wind: w?.wind ?? null,
+          icon: w?.icon ?? null,
+          fcstDate: w?.fcstDate ?? null,
+          fcstTime: w?.fcstTime ?? null,
+          hasData: !!(w && w.temp !== null && w.temp !== undefined && w.temp !== "")
+        };
+      });
+    }
+
+    function renderDashboard(data, positions) {
+      const regions = mergeAllRegions(positions, data.regions || []);
+      let selected = regions.find(r => r.hasData) || regions[0];
+
+      document.getElementById("updatedBadge").textContent =
+        "업데이트: " + (data.updatedAt || "-");
+      document.getElementById("baseBadge").textContent =
+        "발표: " + formatDate(data.baseDate) + " " + formatTime(data.baseTime);
+
+      document.getElementById("markersLayer").innerHTML = regions.map(r => {
+        const color = r.hasData ? tempColor(r.temp) : "#94a3b8";
+        const extraClass = r.hasData ? "" : " no-data";
+        return `
+          <button type="button" class="map-marker${extraClass}" data-id="${r.id}"
+            style="left:${r.left}%;top:${r.top}%;border-color:${color}">
+            <span class="m-name">${r.name}</span>
+            <span class="m-temp" style="color:${color}">${r.hasData ? (r.temp ?? "-") + "°" : "-"}</span>
+          </button>`;
+      }).join("");
+
+      document.getElementById("cardsPanel").style.display = "block";
+
+      function renderDetail(r) {
+        selected = r;
+        document.querySelectorAll(".map-marker").forEach(el => {
+          el.classList.toggle("active", el.dataset.id === r.id);
+        });
+        document.querySelectorAll(".card").forEach(el => {
+          el.classList.toggle("active", el.dataset.id === r.id);
+        });
+
+        const icon = r.hasData ? (ICONS[r.icon] || "🌡️") : "⚠️";
+        document.getElementById("detailPanel").innerHTML = `
+          <h2>${r.name}</h2>
+          <p class="sub">격자좌표 nx=${r.nx}, ny=${r.ny}${r.hasData ? ` · 예보 ${formatDate(r.fcstDate)} ${formatTime(r.fcstTime)}` : " · 날씨 데이터 없음"}</p>
+          <div class="hero">
+            <div class="hero-icon">${icon}</div>
+            <div>
+              <div class="hero-temp" style="color:${tempColor(r.temp)}">${r.hasData ? (r.temp ?? "-") + "°C" : "-"}</div>
+              <div class="hero-desc">${r.hasData ? skyLabel(r.sky) + (r.pty && r.pty !== "0" ? " · " + ptyLabel(r.pty) : "") : "데이터를 불러오지 못했습니다"}</div>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat"><label>예보 기온</label><span>${r.forecastTemp ?? "-"}${r.hasData ? "°C" : ""}</span></div>
+            <div class="stat"><label>습도</label><span>${r.humidity ?? "-"}${r.hasData ? "%" : ""}</span></div>
+            <div class="stat"><label>강수확률</label><span>${r.pop ?? "-"}${r.hasData ? "%" : ""}</span></div>
+            <div class="stat"><label>풍속</label><span>${r.wind ?? "-"}${r.hasData ? " m/s" : ""}</span></div>
+          </div>`;
+      }
+
+      document.getElementById("cards").innerHTML = regions.map(r => `
+        <div class="card${r.hasData ? "" : " no-data"}" data-id="${r.id}">
+          <div class="c-name">${r.name}</div>
+          <div class="c-temp" style="color:${r.hasData ? tempColor(r.temp) : "#94a3b8"}">${r.hasData ? (r.temp ?? "-") + "°" : "-"}</div>
+          <div class="c-sky">${r.hasData ? (ICONS[r.icon] || "") + " " + skyLabel(r.sky) : "데이터 없음"}</div>
+        </div>
+      `).join("");
+
+      document.querySelectorAll(".map-marker, .card").forEach(el => {
+        el.addEventListener("click", () => {
+          const r = regions.find(x => x.id === el.dataset.id);
+          if (r) renderDetail(r);
+        });
+      });
+
+      if (selected) renderDetail(selected);
+
+      if (data.errors && data.errors.length) {
+        const warn = document.createElement("div");
+        warn.className = "error-box";
+        warn.style.padding = "12px";
+        warn.style.fontSize = "0.85rem";
+        warn.textContent = "일부 지역 조회 실패: " + data.errors.join(", ");
+        document.getElementById("cardsPanel").appendChild(warn);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById("markersLayer").innerHTML =
+        `<div class="map-loading" style="color:#dc2626">${msg.replace(/\n/g, "<br>")}</div>`;
+      document.getElementById("detailPanel").innerHTML =
+        `<div class="error-box">${msg.replace(/\n/g, "<br>")}</div>`;
+    }
+
+    function mergeRegionPositions(weatherRegions, positions) {
+      return mergeAllRegions(positions, weatherRegions);
+    }
+
+    async function loadData() {
+      if (location.protocol === "file:") {
+        showError(
+          "HTML 파일을 직접 열면 동작하지 않습니다.\n\n" +
+          "아래 순서로 실행해 주세요:\n" +
+          "1. weather 폴더에서 start.ps1 실행 (또는 날씨시작.bat 더블클릭)\n" +
+          "2. 브라우저에서 http://localhost:8082 접속\n\n" +
+          "※ index.html을 더블클릭해서 여는 방식은 사용할 수 없습니다."
+        );
+        return;
+      }
+
+      try {
+        const posRes = await fetch("/regions.json");
+        const positions = await posRes.json();
+        renderMapSkeleton(positions);
+
+        const weatherRes = await fetch("/api/weather");
+        const data = await weatherRes.json();
+        if (!weatherRes.ok || data.error) throw new Error(data.error || "API 요청 실패");
+        if (!data.regions || data.regions.length === 0) {
+          throw new Error("날씨 데이터가 없습니다. 잠시 후 다시 시도하거나 start.ps1을 재실행해 주세요.");
+        }
+        renderDashboard(data, positions);
+      } catch (err) {
+        showError(
+          "데이터를 불러오지 못했습니다.\n\n" +
+          err.message + "\n\n" +
+          "해결 방법:\n" +
+          "1. weather 폴더에서 .\\start.ps1 실행\n" +
+          "2. 브라우저 주소창에 http://localhost:8082 입력\n" +
+          "3. 서버 창이 열려 있는지 확인 (닫으면 데이터 조회 불가)"
+        );
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
